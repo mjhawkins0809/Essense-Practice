@@ -1,0 +1,371 @@
+'''
+
+Working on currently:
+
+==== WILD BATTLES =====
+
+Add in an equation that calculates damage rather than just raw numbers
+
+Create a mechanism for choosing a location to search in
+
+Figure out and impliment how much xp is given after battle
+
+Send out first cpn that is not KO rather than just always first one
+
+Figure out run mechanic of wild battles
+
+
+
+==== ESSENCE BENEFIT IDEAS ====
+one of them would allow the creature to attack BEFORE a switch in battle, rather than after
+
+increases in stats
+	ex. Air == Speed, Earth == Defense ect.
+
+'''
+
+
+
+import random
+
+class creature():
+	"""Base for creatures as well as the function to create random creatures for combat"""
+	essence = "None"
+	def __init__(self, animal, name, level, hp, max_hp, hp_variance, speed, attack, defense, sp_attack, sp_defense, xp, moves, ko):
+		super(creature, self).__init__()
+		self.animal = animal
+		self.hp = hp
+		self.max_hp = max_hp
+		self.hp_variance = hp_variance
+		self.name = name
+		self.speed = speed
+		self.level = level
+		self.attack = attack
+		self.defense = defense
+		self.sp_attack = sp_attack
+		self.sp_defense = sp_defense
+		self.moves = moves
+		self.ko = ko
+		self.xp = xp
+
+
+	#create a unique variation of a creature with different HP and a random essence
+	def createRandomCreature(animal):
+		foe_hp = creature_stats[animal]["HP"]
+		foe_max_hp = creature_stats[animal]["Max_hp"]
+		foe_hp_variance = creature_stats[animal]["Hp_variance"]
+		foe_speed = creature_stats[animal]["Speed"]
+		foe_attack = creature_stats[animal]["Attack"]
+		foe_defense = creature_stats[animal]["Defense"]
+		foe_sp_attack = creature_stats[animal]["Sp_attack"]
+		foe_sp_defense = creature_stats[animal]["Sp_defense"]
+		foe_xp = creature_stats[animal]["Xp"]
+		foe_moves = creature_stats[animal]["Moves"]
+		foe_ko = creature_stats[animal]["Ko"]
+		foe = creature(animal,animal,0,foe_hp,foe_max_hp,foe_hp_variance,foe_speed,foe_attack,foe_defense,foe_sp_attack,foe_sp_defense,foe_xp,foe_moves,foe_ko)
+		foe.max_hp = foe.max_hp + random.randint(1,foe.hp_variance)
+		foe.hp = foe.max_hp
+		foe.essence = random.choice(creature_essence_options[foe.animal])
+		foe.level = 3
+
+		return foe
+
+	# print the move that is used and the amount of damage that it deals
+	def use_move(self,other,move):
+		damage = moves.get(move)[0]
+		print(f"{self.name} uses {move} dealing {damage} damage")
+		other.hp -= damage
+		print(f"{other.name}\'s HP is now {other.hp}")
+
+		if other.hp <= 0:
+			other.ko = True
+
+
+	# display which moves are available to the creature
+	def show_moves(self):
+		print("------------------------------------")
+		for move in (self.moves[0]):
+			print(f"          {move} ")
+			print("")
+			print(f"Damage:           {moves.get(move)[0]}")
+			print(f"Essence:          {moves.get(move)[2]}")
+			print(f"Damage Type:      {moves.get(move)[3]}")
+			print("------------------------------------")
+
+
+	# level up a creature
+	def level_up(self):
+		self.level += 1
+		self.hp = self.level * 10
+
+class Trainer():
+	def __init__ (self,name,companions,pack,wallet):
+		self.name = name
+		self.companions = companions
+		self.pack = pack
+		self.wallet = wallet
+
+	# view which companions currently are following the trainer
+	def view_companions(self):
+		if not player.has_companion():
+			print("You have no more companions! Return to town to heal up before venturing out again.")
+		else:
+			print("You blow your flute and your companions come running...")
+		print(f"{self.name}'s companions:")
+		for idx, companions in enumerate(self.companions):
+			is_ko = ""
+			if (companions.ko == True):
+				is_ko = "         --- Fainted ---"
+			print(f"{idx + 1} - {companions.name}  Lv.{companions.level}  {companions.hp}/{companions.max_hp} HP {is_ko}")
+			print(f"Essence: {companions.essence}")
+			creature.show_moves(companions)
+
+	# check if player or trainer any companions left for battle
+	def has_companion(self):
+		ko_count = 0
+		for companion in self.companions:
+			if(companion.ko):
+				ko_count += 1
+		if (ko_count >= len(self.companions)):
+			return False
+		else:
+			return True
+
+	# Swap the order of companions for player and trainer
+	def swap_cpn(self):
+		self.view_companions()
+		print("[number] to change leader, or [Enter] to close")
+		selection = input()
+		if selection in [str(i + 1) for i in range(len(self.companions))]:
+			if (not self.companions[int(selection) - 1].ko):
+				self.set_active_cpn(int(selection) - 1)
+			else:
+				self.swap_cpn()
+		elif (self.companions[0].ko):
+			self.swap_cpn()
+
+	def set_active_cpn(self, selection):
+		self.companions.insert(0, self.companions.pop(self.companions.index(self.companions[selection])))
+
+
+# set terrain for encounter
+terrain = "meadow"
+
+# dictionary of terrains and which creatures can be found there
+creatureLocation = {
+"meadow" : ["Wolf","Bear"],
+"cave" : ["Crow"]
+}
+
+creature_stats = {
+"Wolf" : {
+	"HP" : 30,
+	"Max_hp" : 30,
+	"Hp_variance" : 5,
+	"Speed" : 15,
+	"Attack" : 13,
+	"Defense" : 8,
+	"Sp_attack" : 8,
+	"Sp_defense" : 8,
+	"Xp" : 0,
+	"Moves" : [],
+	"Ko" : False
+	},
+"Bear" : {
+	"HP" : 50,
+	"Max_hp" : 50,
+	"Hp_variance" : 8,
+	"Speed" : 10,
+	"Attack" : 15,
+	"Defense" : 10,
+	"Sp_attack" : 8,
+	"Sp_defense" : 8,
+	"Xp" : 0,
+	"Moves" : [],
+	"Ko" : False
+	},
+"Crow" : {
+	"HP" : 15,
+	"Max_hp" : 15,
+	"Hp_variance" : 7,
+	"Speed" : 20,
+	"Attack" : 8,
+	"Defense" : 8,
+	"Sp_attack" : 19,
+	"Sp_defense" : 19,
+	"Xp" : 0,
+	"Moves" : [],
+	"Ko" : False
+	}
+}
+
+# dictionary of moves usable by creatures
+# damage to foe, healing for self, essence, damage type
+moves = {
+"Claw" : [10,0,"normal","physical"],
+"Screech" : [3,5,"normal","special"],
+"Bite" : [15,0,"normal","physical"],
+"Hunt" : [0,0,"normal","physical"]
+}
+
+# dictionary of creatures and which moves they can learn
+creature_moves = {
+"Wolf" : ["Claw","Bite","Hunt"],
+"Bear" : ["Claw","Bite"],
+"Crow" : ["Screech"]
+}
+# dictionary of the possible options that a given creature can have for it's essence
+creature_essence_options = {
+"Wolf" : ["None","Fire","Water","Darkness"],
+"Bear" : ["None","Air", "Earth", "Light"],
+"Crow" : ["None","Blood", "Darkness", "Air"]
+}
+
+#creature.show_moves(wolf)
+#creature.use_move(wolf,"bite")
+#p1 = Player("Yogi")
+#p2 = AiPlayer("current")
+#enemy = creature.createRandomCreature(random.choice(creatureLocation[terrain]))
+player = Trainer("yogibear", [], {"potion": 10, "revive": 3}, 5000)
+
+# FUNCTIONS
+def wild_battle():
+	wild = creature.createRandomCreature(random.choice(creatureLocation[terrain]))
+	wild.moves.append(creature_moves[wild.name][-5:])
+	caught = False
+
+	if wild.essence == "None":
+		print(f"You encounter a wild {wild.name}. It doesn't seem to be showing any essence.")
+	else:
+		print(f"You encounter a wild {wild.name} teeming with the {wild.essence} essence!")
+	player_cpn = player.companions[0]
+	print(f"{player.companions[0].name} rushes in to fight!")
+
+	if (wild.speed > player_cpn.speed):
+		print(f"The wild {wild.name} is faster than your {player_cpn.name}. They go first!")
+		turn = 1
+	else:
+		turn = 0
+
+
+	# Loop for battle.
+	while (player.has_companion() and not wild.ko and not caught):
+		# player turn == 0 wild turn == 1
+		# using numbers rather than True False because might add in more creatures to battle later
+
+		while (turn == 0):
+		# choose which thing you would like to do on your turn
+			choose = int(input("What would you like to do?\n 1) Attack\n 2) Charm\n 3) Use Item\n 4) Switch Companions\n 5) Attempt to Run\n"))
+
+			# if player chooses to attack, then ask which move to use
+			if (choose == 1):
+				player_cpn.show_moves()
+				atk_choose = int(input("Which move would you like to use? 1-5 OR 0 to go back. \n"))
+				# give the player the option to go back if they change their mind
+				if (atk_choose == 0):
+					continue
+				else:
+					player_cpn.use_move(wild,player_cpn.moves[0][atk_choose-1])
+				if (wild.hp <= 0):
+					wild.ko = True
+					print(f"You have defeated {wild.name}! You gain some xp and essence.")
+					player_cpn.xp = wild.level * 2
+					# break out of while loop for player turn
+					break
+				else:
+					turn = 1
+
+
+			# if player chooses to charm wild, check if wild is charmed to be a companion
+			elif (choose == 2):
+					print(f"You have charmed the {wild.essence} {wild.name}!")
+					player.companions.extend([wild])
+					caught = True
+					player_cpn.xp = wild.level
+					break
+			# if player chooses to use an item, offer an option which item to use and on which creature_essence_options
+			elif (choose == 3):
+					pass
+			# if player would like to switch companions
+			elif (choose == 4):
+					if (player.has_companion()):
+						print("Choose which companion you would like to send out? :")
+						player.swap_cpn()
+						player_cpn = player.companions[0]
+						turn = 1
+			# if player chooses to try to run, then check if able to escape from wild encounter
+			elif (choose == 5):
+					run = False
+					# if player companion is much higher level than wild
+					# player will automatically be able to run
+					if (player_cpn.level - wild.level >= 10):
+						run = True
+					else:
+						run = True
+
+		while (turn == 1):
+			wild_move = random.choice(wild.moves[0])
+			wild.use_move(player_cpn,wild_move)
+			if (player_cpn.ko):
+				print(f"{player_cpn.name} has fainted!")
+
+				if (player.has_companion()):
+					print("Choose next companion:")
+					player.swap_cpn()
+					player_cpn = player.companions[0]
+
+			turn = 0
+
+
+
+	#return back to selection menue
+	return True
+
+
+
+def trainer_battle():
+	pass
+
+def main():
+	print("Welcome to Essence. The world is changing and creatures all over the land are showing their true essenece.\n Your adventure is about to begin.\n "
+	"What is your name?")
+	player.name = input()
+	print(f"Great, so your name is {player.name}.")
+	print("For your journey your oldest and best friend, a wolf, will join you.")
+	# self, animal, name, level, hp, max_hp, hp_variance, speed, attack, defense, sp_attack, sp_defense
+	player.companions.extend([creature("Wolf","Ghost",5,30,30,5,9, 12, 9, 8, 8,0,[],False)])
+	player.companions.extend([creature("Crow","BIRD",5,15,15,5,13, 12, 20, 8, 8,0,[],False)])
+	player.companions[0].moves.append(["Claw","Bite","Hunt"])
+	player.companions[1].moves.append(["Claw","Screech"])
+
+
+	print("Does your wolf go by a particular name? y/n")
+	name_change = input()
+
+	#There has got to be a better way to do this...
+	if (name_change == "y"):
+		player.companions[0].name = input("What name does your Wolf go by?")
+		print(f"Of course, it is called {player.companions[0].name}")
+
+	playing = True
+	while playing:
+		choice = input("\nWhat would you like to do?\n"
+					   "1) Search tall grass\n"
+					   "2) Trainer Battle\n"
+					   "3) Companions\n"
+					   "4) Pack\n"
+					   "5) Shop\n"
+					   "6) Quit\n")
+		if (choice == '1'):
+			playing = wild_battle()
+		elif (choice == '2'):
+			playing = trainer_battle()
+		elif (choice == '3'):
+			player.view_companions()
+		elif (choice == '4'):
+			player.view_pack()
+		elif (choice == '5'):
+			shop()
+		elif (choice == '6'):
+			playing = False
+main()
